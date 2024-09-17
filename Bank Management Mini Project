@@ -1,0 +1,230 @@
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <stdlib.h>
+
+#define MAX_ACCOUNTS 100
+#define PASSWORD "bank123"  // Password for secure operations
+
+// Structure to store account information
+typedef struct {
+    int accountNumber;
+    char name[50];
+    double balance;
+    time_t creationTime;
+} Account;
+
+// Array to store accounts and a count of total accounts
+Account accounts[MAX_ACCOUNTS];
+int accountCount = 0;
+
+// Function declarations
+void createAccount();
+void modifyAccount();
+void withdrawMoney();
+void depositMoney();
+void checkBalance();
+void displayAccounts();
+void sortAccountsByTime();
+int authenticate(); // Password authentication function
+void displayTime(time_t);
+
+int main() {
+    int choice;
+
+    while (1) {
+        printf("\n--- Bank Management System ---\n");
+        printf("1. Create Account\n");
+        printf("2. Modify Account\n");
+        printf("3. Withdraw Money\n");
+        printf("4. Deposit Money\n");
+        printf("5. Check Balance\n");
+        printf("6. Display All Accounts (Sorted by Creation Time)\n");
+        printf("7. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1:
+                createAccount();
+                break;
+            case 2:
+                if (authenticate()) modifyAccount();
+                break;
+            case 3:
+                if (authenticate()) withdrawMoney();
+                break;
+            case 4:
+                depositMoney();
+                break;
+            case 5:
+                if (authenticate()) checkBalance();
+                break;
+            case 6:
+                if (authenticate()) displayAccounts();
+                break;
+            case 7:
+                printf("Exiting the system...\n");
+                exit(0);
+            default:
+                printf("Invalid choice! Please try again.\n");
+        }
+    }
+    return 0;
+}
+
+// Function to create a new account
+void createAccount() {
+    if (accountCount >= MAX_ACCOUNTS) {
+        printf("Bank account limit reached!\n");
+        return;
+    }
+
+    Account newAccount;
+    newAccount.accountNumber = accountCount + 1;
+    printf("Enter account holder's name: ");
+    getchar();  // Clear newline from buffer
+    fgets(newAccount.name, sizeof(newAccount.name), stdin);
+    newAccount.name[strcspn(newAccount.name, "\n")] = '\0';  // Remove newline character
+
+    printf("Enter initial deposit amount: ");
+    scanf("%lf", &newAccount.balance);
+
+    newAccount.creationTime = time(NULL);  // Set current time as creation time
+    accounts[accountCount] = newAccount;
+    accountCount++;
+
+    printf("Account created successfully!\nAccount Number: %d\n", newAccount.accountNumber);
+}
+
+// Function to modify account details
+void modifyAccount() {
+    int accNum;
+    printf("Enter account number to modify: ");
+    scanf("%d", &accNum);
+
+    for (int i = 0; i < accountCount; i++) {
+        if (accounts[i].accountNumber == accNum) {
+            printf("Enter new name for the account: ");
+            getchar();  // Clear newline from buffer
+            fgets(accounts[i].name, sizeof(accounts[i].name), stdin);
+            accounts[i].name[strcspn(accounts[i].name, "\n")] = '\0';  // Remove newline character
+            printf("Account modified successfully!\n");
+            return;
+        }
+    }
+    printf("Account not found!\n");
+}
+
+// Function to withdraw money
+void withdrawMoney() {
+    int accNum;
+    double amount;
+
+    printf("Enter account number: ");
+    scanf("%d", &accNum);
+
+    for (int i = 0; i < accountCount; i++) {
+        if (accounts[i].accountNumber == accNum) {
+            printf("Enter amount to withdraw: ");
+            scanf("%lf", &amount);
+
+            if (amount > accounts[i].balance) {
+                printf("Insufficient balance!\n");
+            } else {
+                accounts[i].balance -= amount;
+                printf("Withdrawal successful! New balance: %.2lf\n", accounts[i].balance);
+            }
+            return;
+        }
+    }
+    printf("Account not found!\n");
+}
+
+// Function to deposit money
+void depositMoney() {
+    int accNum;
+    double amount;
+
+    printf("Enter account number: ");
+    scanf("%d", &accNum);
+
+    for (int i = 0; i < accountCount; i++) {
+        if (accounts[i].accountNumber == accNum) {
+            printf("Enter amount to deposit: ");
+            scanf("%lf", &amount);
+            accounts[i].balance += amount;
+            printf("Deposit successful! New balance: %.2lf\n", accounts[i].balance);
+            return;
+        }
+    }
+    printf("Account not found!\n");
+}
+
+// Function to check balance
+void checkBalance() {
+    int accNum;
+
+    printf("Enter account number: ");
+    scanf("%d", &accNum);
+
+    for (int i = 0; i < accountCount; i++) {
+        if (accounts[i].accountNumber == accNum) {
+            printf("Account Number: %d\nName: %s\nBalance: %.2lf\n", accounts[i].accountNumber, accounts[i].name, accounts[i].balance);
+            displayTime(accounts[i].creationTime);
+            return;
+        }
+    }
+    printf("Account not found!\n");
+}
+
+// Function to display all accounts sorted by creation time
+void displayAccounts() {
+    if (accountCount == 0) {
+        printf("No accounts to display.\n");
+        return;
+    }
+
+    sortAccountsByTime();
+
+    printf("\n--- Accounts List (Sorted by Creation Time) ---\n");
+    for (int i = 0; i < accountCount; i++) {
+        printf("\nAccount Number: %d\nName: %s\nBalance: %.2lf\n", accounts[i].accountNumber, accounts[i].name, accounts[i].balance);
+        displayTime(accounts[i].creationTime);
+    }
+}
+
+// Function to sort accounts by creation time in ascending order
+void sortAccountsByTime() {
+    Account temp;
+    for (int i = 0; i < accountCount - 1; i++) {
+        for (int j = i + 1; j < accountCount; j++) {
+            if (difftime(accounts[i].creationTime, accounts[j].creationTime) > 0) {
+                temp = accounts[i];
+                accounts[i] = accounts[j];
+                accounts[j] = temp;
+            }
+        }
+    }
+}
+
+// Function to display the account creation time
+void displayTime(time_t rawtime) {
+    struct tm *timeinfo = localtime(&rawtime);
+    printf("Account Creation Time: %s", asctime(timeinfo));
+}
+
+// Function to authenticate using password
+int authenticate() {
+    char inputPassword[20];
+
+    printf("Enter password: ");
+    scanf("%s", inputPassword);
+
+    if (strcmp(inputPassword, PASSWORD) == 0) {
+        return 1;
+    } else {
+        printf("Incorrect password!\n");
+        return 0;
+    }
+}
